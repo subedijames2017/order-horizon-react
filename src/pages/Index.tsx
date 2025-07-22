@@ -1,167 +1,105 @@
-import { useState, useEffect } from 'react';
-import { faker } from '@faker-js/faker';
-import { ShoppingCart, DollarSign, TrendingUp, Users } from 'lucide-react';
+import { useState } from 'react';
+import { ShoppingCart, DollarSign, TrendingUp, Users, Bell, User } from 'lucide-react';
+import { Sidebar } from '@/components/Sidebar';
+import { StatCard } from '@/components/StatCard';
+import { OrderRevenueChart } from '@/components/charts/OrderRevenueChart';
+import { CircularProgress } from '@/components/charts/CircularProgress';
+import { OrderStatusChart } from '@/components/charts/OrderStatusChart';
+import { OrdersTable } from '@/components/OrdersTable';
 
-type OrderStatus = 'Pending' | 'Shipped' | 'Delivered' | 'Cancelled';
-type Region = 'APAC' | 'UK' | 'US';
-
-interface Order {
-  orderId: string;
-  customerName: string;
-  region: Region;
-  orderAmount: number;
-  status: OrderStatus;
-  createdAt: string;
-}
 
 const Index = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-
-  useEffect(() => {
-    const generateOrders = () => {
-      const regions: Region[] = ['APAC', 'UK', 'US'];
-      const statuses: OrderStatus[] = ['Pending', 'Shipped', 'Delivered', 'Cancelled'];
-      const mockOrders: Order[] = [];
-
-      for (let i = 0; i < 50; i++) {
-        mockOrders.push({
-          orderId: faker.string.alphanumeric({ length: 8, casing: 'upper' }),
-          customerName: faker.person.fullName(),
-          region: faker.helpers.arrayElement(regions),
-          orderAmount: parseFloat(faker.commerce.price({ min: 10, max: 5000, dec: 2 })),
-          status: faker.helpers.arrayElement(statuses),
-          createdAt: faker.date.recent({ days: 30 }).toLocaleDateString()
-        });
-      }
-      
-      setOrders(mockOrders);
-    };
-
-    generateOrders();
-  }, []);
-
-  const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, order) => sum + order.orderAmount, 0);
-  const deliveredOrders = orders.filter(order => order.status === 'Delivered').length;
-
-  const getStatusColor = (status: OrderStatus) => {
-    switch (status) {
-      case 'Delivered': return 'text-green-600 bg-green-100';
-      case 'Shipped': return 'text-blue-600 bg-blue-100';
-      case 'Pending': return 'text-yellow-600 bg-yellow-100';
-      case 'Cancelled': return 'text-red-600 bg-red-100';
-    }
-  };
-
-  const getRegionColor = (region: Region) => {
-    switch (region) {
-      case 'APAC': return 'text-purple-600 bg-purple-100';
-      case 'UK': return 'text-red-600 bg-red-100';
-      case 'US': return 'text-blue-600 bg-blue-100';
-    }
-  };
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Sidebar */}
+      <Sidebar 
+        collapsed={sidebarCollapsed} 
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Commerce Dashboard</h1>
-          <p className="text-muted-foreground">Global orders across APAC, UK, and US regions</p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-card border border-border rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Orders</p>
-                <p className="text-2xl font-bold text-foreground">{totalOrders}</p>
+        <header className="bg-white border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-800">Dashboard</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-slate-600">Today Orders</div>
+              <button className="p-2 text-slate-400 hover:text-slate-600">
+                <Bell className="w-5 h-5" />
+              </button>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-sm font-medium text-slate-800">Urvashi Singh</span>
               </div>
-              <ShoppingCart className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 p-6 space-y-6">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <StatCard
+              title="Total Orders"
+              value="756"
+              change="4.07%"
+              changeType="positive"
+              icon={ShoppingCart}
+            />
+            <StatCard
+              title="Total Sales"
+              value="1476"
+              change="4.07%"
+              changeType="positive"
+              icon={DollarSign}
+              currency
+            />
+            <StatCard
+              title="Total Outstanding"
+              value="376"
+              change="1.64%"
+              changeType="negative"
+              icon={TrendingUp}
+              currency
+            />
+            <StatCard
+              title="Total Cooperates"
+              value="210"
+              change="4.07%"
+              changeType="positive"
+              icon={Users}
+            />
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Chart */}
+            <div className="lg:col-span-2">
+              <OrderRevenueChart />
+            </div>
+            
+            {/* Side Charts */}
+            <div className="space-y-6">
+              <CircularProgress
+                percentage={76}
+                title="Active Orders"
+                subtitle="Completed"
+                color="#06b6d4"
+              />
+              <OrderStatusChart />
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold text-foreground">${totalRevenue.toFixed(0)}</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-primary" />
-            </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Delivered Orders</p>
-                <p className="text-2xl font-bold text-foreground">{deliveredOrders}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-primary" />
-            </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active Customers</p>
-                <p className="text-2xl font-bold text-foreground">{totalOrders}</p>
-              </div>
-              <Users className="h-8 w-8 text-primary" />
-            </div>
-          </div>
-        </div>
-
-        {/* Orders Table */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-border">
-            <h2 className="text-xl font-semibold text-foreground">Recent Orders</h2>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Order ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Region</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {orders.slice(0, 10).map((order) => (
-                  <tr key={order.orderId} className="hover:bg-muted/50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-foreground">
-                      #{order.orderId}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                      {order.customerName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRegionColor(order.region)}`}>
-                        {order.region}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
-                      ${order.orderAmount.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                      {order.createdAt}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          {/* Orders Table */}
+          <OrdersTable />
+        </main>
       </div>
     </div>
   );
