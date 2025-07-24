@@ -1,91 +1,87 @@
 import { faker } from '@faker-js/faker';
+import { DashboardOrder, DashboardStatus, Region } from '../types/order'; // Adjusted path
+import { STATUS_OPTIONS, REGION_COUNTS } from '../constants/orderConstants'; // Adjust the path as necessary
 
-export type OrderStatus = 'Pending' | 'Shipped' | 'Delivered' | 'Cancelled';
-export type Region = 'APAC' | 'UK' | 'US';
+/**
+ * Generate mock orders for each region with realistic data
+ */
+export function getOrders(): DashboardOrder[] {
+  const orders: DashboardOrder[] = [];
 
-export interface Order {
-  orderId: string;
-  customerName: string;
-  region: Region;
-  orderAmount: number;
-  status: OrderStatus;
-  createdAt: Date;
-}
+  (Object.keys(REGION_COUNTS) as Region[]).forEach((region) => {
+    const orderCount = faker.number.int({ min: 0, max: 50 });
 
-const regions: Region[] = ['APAC', 'UK', 'US'];
-const statuses: OrderStatus[] = ['Pending', 'Shipped', 'Delivered', 'Cancelled'];
+    for (let i = 0; i < orderCount; i++) {
+      const timeRaw = faker.date.recent({ days: 14 });
+      const amountValue = faker.number.int({ min: 5000, max: 50000 });
 
-// Weight distribution for more realistic status distribution
-const statusWeights = {
-  'Delivered': 0.6,
-  'Shipped': 0.2,
-  'Pending': 0.15,
-  'Cancelled': 0.05
-};
-
-function getWeightedStatus(): OrderStatus {
-  const random = Math.random();
-  let cumulative = 0;
-  
-  for (const [status, weight] of Object.entries(statusWeights)) {
-    cumulative += weight;
-    if (random <= cumulative) {
-      return status as OrderStatus;
+      orders.push({
+        id: faker.string.uuid(),
+        region,
+        customer: faker.person.fullName(),
+        orderNumber: `${faker.number.int({ min: 100000, max: 999999 })}`,
+        time: formatFullTimeWithAgo(timeRaw),
+        timeRaw,
+        amount: `$ ${amountValue}`,
+        amountValue,
+        status: faker.helpers.arrayElement(STATUS_OPTIONS),
+      });
     }
+  });
+
+  return faker.helpers.shuffle(orders);
+}
+
+/**
+ * Format a date with relative "time ago" string
+ */
+function formatFullTimeWithAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 1000 / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+
+  let ago = '';
+  if (diffHr < 1) {
+    ago = `${diffMin} min ago`;
+  } else if (diffHr < 24) {
+    ago = `${diffHr} hr ago`;
+  } else {
+    ago = `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
   }
-  return 'Delivered';
+
+  const formatted = date.toLocaleString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+
+  return `${formatted} (${ago})`;
 }
 
-function generateOrder(region: Region): Order {
-  return {
-    orderId: faker.string.alphanumeric({ length: 8, casing: 'upper' }),
-    customerName: faker.person.fullName(),
-    region,
-    orderAmount: parseFloat(faker.commerce.price({ min: 10, max: 5000, dec: 2 })),
-    status: getWeightedStatus(),
-    createdAt: faker.date.recent({ days: 30 })
-  };
-}
-
-export function generateMockOrders(count: number = 100): Order[] {
-  const orders: Order[] = [];
-  
-  // Generate orders distributed across regions
-  for (let i = 0; i < count; i++) {
-    const region = faker.helpers.arrayElement(regions);
-    orders.push(generateOrder(region));
-  }
-  
-  // Sort by creation date (newest first)
-  return orders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-}
-
-export function getOrderStats(orders: Order[]) {
+/**
+ * Calculate statistics from a list of orders
+ */
+export function getOrderStats(orders: DashboardOrder[]) {
   const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, order) => sum + order.orderAmount, 0);
-  
-  const statusCounts = statuses.reduce((acc, status) => {
-    acc[status] = orders.filter(order => order.status === status).length;
+
+  const totalRevenue = orders.reduce((sum, order) => sum + order.amountValue, 0);
+
+  const statusCounts = orders.reduce((acc, order) => {
+    acc[order.status] = (acc[order.status] || 0) + 1;
     return acc;
-  }, {} as Record<OrderStatus, number>);
-  
-  const regionCounts = regions.reduce((acc, region) => {
-    acc[region] = orders.filter(order => order.region === region).length;
-    return acc;
-  }, {} as Record<Region, number>);
-  
-  const regionRevenue = regions.reduce((acc, region) => {
-    acc[region] = orders
-      .filter(order => order.region === region)
-      .reduce((sum, order) => sum + order.orderAmount, 0);
-    return acc;
-  }, {} as Record<Region, number>);
-  
+  }, {} as Record<DashboardStatus, number>);
+
+  const uniqueCustomers = new Set(orders.map(o => o.customer)).size;
+
   return {
     totalOrders,
     totalRevenue,
     statusCounts,
-    regionCounts,
-    regionRevenue
+    uniqueCustomers
   };
 }
