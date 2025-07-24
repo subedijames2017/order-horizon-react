@@ -122,12 +122,12 @@ Wrap your app with `<OrderProvider>` to enable access.
 
 2. Install dependencies:
    ```bash
-   bun install
+   yarn install
    ```
 
 3. Run the app:
    ```bash
-   bun run dev
+   yarn run dev
    # or if using npm
    npm run dev
    ```
