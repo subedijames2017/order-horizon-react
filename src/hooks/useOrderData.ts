@@ -26,6 +26,7 @@ export interface OrderStats {
  * @returns { orders, stats } state derived from the current filter
  */
 export function useOrderData(regionFilter: string) {
+  const [allOrders, setAllOrders] = useState<DashboardOrder[]>([]);
   const [orders, setOrders] = useState<DashboardOrder[]>([]);
   const [stats, setStats] = useState<OrderStats>({
     totalOrders: 0,
@@ -45,55 +46,57 @@ export function useOrderData(regionFilter: string) {
      * 3. Recompute roll-up stats for the filtered dataset.
      */
     const fetchData = async () => {
-      const allOrders = await getOrders();
-
-      // Apply region filter (string compare is fine; ensure caller passes canonical values)
-      const filteredOrders =
-        regionFilter === 'All'
-          ? allOrders
-          : allOrders.filter((o) => o.region === regionFilter);
-
-      setOrders(filteredOrders);
-
-      // --- Derive stats ------------------------------------------------------
-
-      const totalOrders = filteredOrders.length;
-
-      // Sum numeric amount field
-      const totalRevenue = filteredOrders.reduce(
-        (sum: number, o: DashboardOrder) => sum + o.amountValue,
-        0
-      );
-
-      // Count distinct customers
-      const uniqueCustomers = new Set(filteredOrders.map((o: DashboardOrder) => o.customer)).size;
-
-      // Count by status (typed for downstream safety)
-      const statusCounts = filteredOrders.reduce((acc: Partial<Record<DashboardStatus, number>>, o: DashboardOrder) => {
-        acc[o.status] = (acc[o.status] || 0) + 1;
-        return acc;
-      }, {} as Partial<Record<DashboardStatus, number>>);
-
-      // Push derived stats into state
-      setStats({
-        totalOrders,
-        totalRevenue,
-        statusCounts,
-        uniqueCustomers,
-      });
+      const fetchedOrders = await getOrders();
+      setAllOrders(fetchedOrders);
     };
 
-    // Initial fetch on mount and whenever regionFilter changes
+    // Initial fetch on mount only
     fetchData();
 
     // Poll every 30s to simulate live updates
-    intervalId = setInterval(fetchData, 100000);
+    intervalId = setInterval(fetchData, 30000);
 
     // Cleanup interval on unmount or when region filter changes
     return () => {
       clearInterval(intervalId);
     };
-  }, [regionFilter]);
+  }, []); // Only run on mount (not on regionFilter change)
+
+  useEffect(() => {
+    const filteredOrders =
+      regionFilter === 'All'
+        ? allOrders
+        : allOrders.filter((o) => o.region === regionFilter);
+
+    setOrders(filteredOrders);
+
+    // --- Derive stats ------------------------------------------------------
+
+    const totalOrders = filteredOrders.length;
+
+    // Sum numeric amount field
+    const totalRevenue = filteredOrders.reduce(
+      (sum: number, o: DashboardOrder) => sum + o.amountValue,
+      0
+    );
+
+    // Count distinct customers
+    const uniqueCustomers = new Set(filteredOrders.map((o: DashboardOrder) => o.customer)).size;
+
+    // Count by status (typed for downstream safety)
+    const statusCounts = filteredOrders.reduce((acc: Partial<Record<DashboardStatus, number>>, o: DashboardOrder) => {
+      acc[o.status] = (acc[o.status] || 0) + 1;
+      return acc;
+    }, {} as Partial<Record<DashboardStatus, number>>);
+
+    // Push derived stats into state
+    setStats({
+      totalOrders,
+      totalRevenue,
+      statusCounts,
+      uniqueCustomers,
+    });
+  }, [regionFilter, allOrders]); // Recompute only when filter or fetched data changes
 
   return { orders, stats };
 }
