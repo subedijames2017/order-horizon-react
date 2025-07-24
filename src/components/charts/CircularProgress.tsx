@@ -15,7 +15,6 @@ export function CircularProgress({
   size = 'lg',
 }: CircularProgressProps) {
   const { stats } = useOrders();
-  console.log("🚀 ~ stats:", stats)
   const delivered = stats.statusCounts.Delivered ?? 0;
   const percentage = Math.round((delivered / stats.totalOrders) * 100);
 

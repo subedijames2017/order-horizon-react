@@ -243,6 +243,13 @@ The dashboard provides a real-time simulation of global order data with the foll
 
 ---
 
+## 🚀 Deployed with Lovable
+
+The app is deployed using [Lovable](https://lovable.app) deployment service.
+
+🌍 Live URL:  
+**[https://order-horizon-react.lovable.app](https://order-horizon-react.lovable.app)**
+
 ## 🚀 Future Improvements & Possibilities
 
 While this POC uses Faker.js for mock data, there are many ways to improve and extend the project:
